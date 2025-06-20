@@ -58,6 +58,9 @@ typedef struct {
     int inputSize;
     int hiddenSize;
 
+    double* hiddenState;
+    double* cellState;
+
     double** Wf;
     double** Wi;
     double** Wc;
@@ -80,13 +83,17 @@ LSTM* initLSTM(int inputSize, int hiddenSize) {
     network->inputSize = inputSize;
     network->hiddenSize = hiddenSize;
 
-    network->Wf = malloc(inputSize * sizeof(double));
-    network->Wi = malloc(inputSize * sizeof(double));
-    network->Wc = malloc(inputSize * sizeof(double));
-    network->Wo = malloc(inputSize * sizeof(double));
+    network->hiddenState = calloc(hiddenSize, sizeof(double));
+    network->cellState = calloc(hiddenSize, sizeof(double));
+    assert(network->hiddenState != NULL && network->cellState != NULL);
+
+    network->Wf = malloc((inputSize + hiddenSize) * sizeof(double*));
+    network->Wi = malloc((inputSize + hiddenSize) * sizeof(double*));
+    network->Wc = malloc((inputSize + hiddenSize) * sizeof(double*));
+    network->Wo = malloc((inputSize + hiddenSize) * sizeof(double*));
     assert(network->Wf != NULL && network->Wi != NULL && network->Wc != NULL && network->Wo != NULL);
     
-    for (int i=0; i<inputSize; i++) {
+    for (int i=0; i<(inputSize + hiddenSize); i++) {
         network->Wf[i] = malloc(hiddenSize * sizeof(double));
         network->Wi[i] = malloc(hiddenSize * sizeof(double));
         network->Wc[i] = malloc(hiddenSize * sizeof(double));
@@ -94,10 +101,10 @@ LSTM* initLSTM(int inputSize, int hiddenSize) {
         assert(network->Wf[i] != NULL && network->Wi[i] != NULL && network->Wc[i] != NULL && network->Wo[i] != NULL);
 
         for (int j=0; j<hiddenSize; j++) {
-            network->Wf[i][j] = heInitialization(inputSize * hiddenSize);
-            network->Wi[i][j] = heInitialization(inputSize * hiddenSize);
-            network->Wc[i][j] = heInitialization(inputSize * hiddenSize);
-            network->Wo[i][j] = heInitialization(inputSize * hiddenSize);
+            network->Wf[i][j] = heInitialization(inputSize + hiddenSize);
+            network->Wi[i][j] = heInitialization(inputSize + hiddenSize);
+            network->Wc[i][j] = heInitialization(inputSize + hiddenSize);
+            network->Wo[i][j] = heInitialization(inputSize + hiddenSize);
         }
     }
 
@@ -108,7 +115,7 @@ LSTM* initLSTM(int inputSize, int hiddenSize) {
     assert(network->Bf != NULL && network->Bi != NULL && network->Bc != NULL && network->Bo != NULL);
 
     for (int i=0; i<hiddenSize; i++) {
-        network->Bf[i] = 0.0;
+        network->Bf[i] = 1.0;
         network->Bi[i] = 0.0;
         network->Bc[i] = 0.0;
         network->Bo[i] = 0.0;
@@ -118,7 +125,10 @@ LSTM* initLSTM(int inputSize, int hiddenSize) {
 }
 
 void freeLSTM(LSTM* network) {
-    for (int i=0; i<network->inputSize; i++) {
+    free(network->hiddenState);
+    free(network->cellState);
+
+    for (int i=0; i<(network->inputSize + network->hiddenSize); i++) {
         free(network->Wf[i]);
         free(network->Wi[i]);
         free(network->Wc[i]);
@@ -138,13 +148,115 @@ void freeLSTM(LSTM* network) {
     free(network);
 }
 
+double sigmoid(double x) {
+    return 1.0 / (1.0 + exp(-x));
+}
+
+double* forgetGate(LSTM* network, double* state) {
+    double* result = malloc(network->hiddenSize * sizeof(double));
+    assert(result != NULL);
+
+    for (int i = 0; i < network->hiddenSize; i++) {
+        result[i] = network->Bf[i];
+        for (int j = 0; j < (network->inputSize + network->hiddenSize); j++) {
+            result[i] += state[j] * network->Wf[j][i];
+        }
+        result[i] = sigmoid(result[i]);
+    }
+
+    return result;
+}
+
+double* inputGate(LSTM* network, double* state) {
+    double* result = malloc(network->hiddenSize * sizeof(double));
+    assert(result != NULL);
+
+    for (int i = 0; i < network->hiddenSize; i++) {
+        result[i] = network->Bi[i];
+        for (int j = 0; j < (network->inputSize + network->hiddenSize); j++) {
+            result[i] += state[j] * network->Wi[j][i];
+        }
+        result[i] = sigmoid(result[i]);
+    }
+
+    return result;
+}
+
+double* cellGate(LSTM* network, double* state) {
+    double* result = malloc(network->hiddenSize * sizeof(double));
+    assert(result != NULL);
+
+    for (int i = 0; i < network->hiddenSize; i++) {
+        result[i] = network->Bc[i];
+        for (int j = 0; j < (network->inputSize + network->hiddenSize); j++) {
+            result[i] += state[j] * network->Wc[j][i];
+        }
+        result[i] = tanh(result[i]);
+    }
+
+    return result;
+}
+
+double* outputGate(LSTM* network, double* state) {
+    double* result = malloc(network->hiddenSize * sizeof(double));
+    assert(result != NULL);
+
+    for (int i = 0; i < network->hiddenSize; i++) {
+        result[i] = network->Bo[i];
+        for (int j = 0; j < (network->inputSize + network->hiddenSize); j++) {
+            result[i] += state[j] * network->Wo[j][i];
+        }
+        result[i] = sigmoid(result[i]);
+    }
+
+    return result;
+}
+
+void forward(LSTM* network, WeatherData* data, int idx) {
+    double* newHiddenState = malloc((network->hiddenSize + network->inputSize) * sizeof(double));
+    assert(newHiddenState != NULL);
+
+    newHiddenState[0] = data->date[idx];
+    newHiddenState[1] = data->humidity[idx];
+    newHiddenState[2] = data->windSpeed[idx];
+    newHiddenState[3] = data->pressure[idx];
+    for (int i = 0; i < network->hiddenSize; i++) newHiddenState[i + network->inputSize] = network->hiddenState[i];
+
+    double* fArray = forgetGate(network, newHiddenState);
+    double* iArray = inputGate(network, newHiddenState);
+    double* cArray = cellGate(network, newHiddenState);
+    double* oArray = outputGate(network, newHiddenState);
+
+    for (int i=0; i<network->hiddenSize; i++) {
+        network->cellState[i] = fArray[i] * network->cellState[i] + iArray[i] * cArray[i];
+        network->hiddenState[i] = oArray[i] * tanh(network->cellState[i]);
+    }
+
+    free(newHiddenState);
+    free(fArray);
+    free(iArray);
+    free(cArray);
+    free(oArray);
+}
+
+void test(LSTM* network, WeatherData* data) {
+    for (int i=0; i<data->size; i++) {
+        forward(network, data, i);
+    }
+}
+
 int main() {
-    char* filename = "./data/train.csv";
-    WeatherData* data = initWeatherData(filename);
+    char* trainData = "./data/train.csv";
+    char* testData = "./data/test.csv";
+
+    WeatherData* data = initWeatherData(trainData);
     assert(data != NULL);
 
-    LSTM* lstm = initLSTM(5, 10);
+    LSTM* lstm = initLSTM(4, 8);
     assert(lstm != NULL);
+
+    test(lstm, data);
+    printf("LSTM tested.\n");
 
     freeLSTM(lstm);
     freeWeatherData(data);
