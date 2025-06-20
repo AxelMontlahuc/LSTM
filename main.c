@@ -45,6 +45,15 @@ WeatherData* initWeatherData(char* filename) {
     return data;
 }
 
+void freeWeatherData(WeatherData* data) {
+    free(data->date);
+    free(data->temp);
+    free(data->humidity);
+    free(data->windSpeed);
+    free(data->pressure);
+    free(data);
+}
+
 typedef struct {
     int inputSize;
     int hiddenSize;
@@ -134,10 +143,10 @@ int main() {
     WeatherData* data = initWeatherData(filename);
     assert(data != NULL);
 
-    for (int i = 0; i < data->size; i++) {
-        printf("Date: %d, Temp: %.2f, Humidity: %.2f, Wind Speed: %.2f, Pressure: %.2f\n",
-               data->date[i], data->temp[i], data->humidity[i], data->windSpeed[i], data->pressure[i]);
-    }
+    LSTM* lstm = initLSTM(5, 10);
+    assert(lstm != NULL);
 
+    freeLSTM(lstm);
+    freeWeatherData(data);
     return 0;
 }
