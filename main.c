@@ -1,6 +1,49 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
+#include <math.h>
+
+#define MAX_LINE_LENGTH 256
+
+typedef struct {
+    int size;
+    int* date;
+    double* temp;
+    double* humidity;
+    double* windSpeed;
+    double* pressure;
+} WeatherData;
+
+WeatherData* initWeatherData(char* filename) {
+    FILE* f = fopen(filename, "r");
+    assert(f != NULL);
+
+    int size = 0;
+    char line[MAX_LINE_LENGTH];
+    while (fgets(line, sizeof(line), f)) size++;
+    rewind(f);
+
+    WeatherData* data = malloc(sizeof(WeatherData));
+    assert(data != NULL);
+
+    data->size = size;
+    data->date = malloc(size * sizeof(int));
+    data->temp = malloc(size * sizeof(double));
+    data->humidity = malloc(size * sizeof(double));
+    data->windSpeed = malloc(size * sizeof(double));
+    data->pressure = malloc(size * sizeof(double));
+    assert(data->temp != NULL && data->humidity != NULL && data->windSpeed != NULL && data->pressure != NULL);
+
+    char trash[11];
+    for (int i = 0; i < size; i++) {
+        fgets(line, sizeof(line), f);
+        data->date[i] = i;
+        sscanf(line, "%10[^,],%lf,%lf,%lf,%lf", trash, &data->temp[i], &data->humidity[i], &data->windSpeed[i], &data->pressure[i]);
+    }
+    fclose(f);
+
+    return data;
+}
 
 typedef struct {
     int inputSize;
@@ -84,4 +127,17 @@ void freeLSTM(LSTM* network) {
     free(network->Bo);
 
     free(network);
+}
+
+int main() {
+    char* filename = "./data/train.csv";
+    WeatherData* data = initWeatherData(filename);
+    assert(data != NULL);
+
+    for (int i = 0; i < data->size; i++) {
+        printf("Date: %d, Temp: %.2f, Humidity: %.2f, Wind Speed: %.2f, Pressure: %.2f\n",
+               data->date[i], data->temp[i], data->humidity[i], data->windSpeed[i], data->pressure[i]);
+    }
+
+    return 0;
 }
