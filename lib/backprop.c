@@ -6,6 +6,7 @@
 #include "backprop.h"
 #include "data.h"
 #include "model.h"
+#include "forward.h"
 
 double mse(double pred, double target) {
     return (pred - target) * (pred - target);
@@ -372,4 +373,86 @@ double* dL_dBo(double* cellState, double* oArray, double prediction, double targ
     free(dh_dBo_grad);
 
     return grad;
+}
+
+double* backpropagation(LSTM* network, WeatherData* data, int idx, double learningRate) {
+    double* cellPrev = malloc(network->hiddenSize * sizeof(double));
+    assert(cellPrev != NULL);
+    for (int i = 0; i < network->hiddenSize; i++) {
+        cellPrev[i] = network->cellState[i];
+    }
+
+    double* combinedState = malloc((network->hiddenSize + network->inputSize) * sizeof(double));
+    assert(combinedState != NULL);
+
+    combinedState[0] = data->date[idx];
+    combinedState[1] = data->temp[idx];
+    combinedState[2] = data->humidity[idx];
+    combinedState[3] = data->windSpeed[idx];
+    combinedState[4] = data->pressure[idx];
+    for (int i = 0; i < network->hiddenSize; i++) combinedState[i + network->inputSize] = network->hiddenState[i];
+
+    double* fArray = forgetGate(network, combinedState);
+    double* iArray = inputGate(network, combinedState);
+    double* gArray = cellGate(network, combinedState);
+    double* oArray = outputGate(network, combinedState);
+
+    for (int i=0; i<network->hiddenSize; i++) {
+        network->cellState[i] = fArray[i] * network->cellState[i] + iArray[i] * gArray[i];
+        network->hiddenState[i] = oArray[i] * tanh(network->cellState[i]);
+    }
+
+    double prediction = network->hiddenState[1];
+    double target = data->temp[idx + 1];
+
+    double** dL_dWf_grad = dL_dWf(network, prediction, target, combinedState, oArray, fArray);
+    double** dL_dWi_grad = dL_dWi(network, prediction, target, combinedState, oArray, gArray, iArray);
+    double** dL_dWg_grad = dL_dWg(network, prediction, target, combinedState, iArray, oArray, gArray);
+    double** dL_dWo_grad = dL_dWo(network, prediction, target, combinedState, oArray);
+
+    double* dL_dBf_grad = dL_dBf(cellPrev, network->cellState, fArray, oArray, prediction, target, network->hiddenSize);
+    double* dL_dBi_grad = dL_dBi(network->cellState, iArray, gArray, oArray, prediction, target, network->hiddenSize);
+    double* dL_dBg_grad = dL_dBg(network->cellState, iArray, gArray, oArray, prediction, target, network->hiddenSize);
+    double* dL_dBo_grad = dL_dBo(network->cellState, oArray, prediction, target, network->hiddenSize);
+
+    for (int i = 0; i < (network->inputSize + network->hiddenSize); i++) {
+        for (int j = 0; j < network->hiddenSize; j++) {
+            network->Wf[i][j] -= learningRate * dL_dWf_grad[i][j];
+            network->Wi[i][j] -= learningRate * dL_dWi_grad[i][j];
+            network->Wc[i][j] -= learningRate * dL_dWg_grad[i][j];
+            network->Wo[i][j] -= learningRate * dL_dWo_grad[i][j];
+        }
+    }
+
+    for (int i = 0; i < network->hiddenSize; i++) {
+        network->Bf[i] -= learningRate * dL_dBf_grad[i];
+        network->Bi[i] -= learningRate * dL_dBi_grad[i];
+        network->Bc[i] -= learningRate * dL_dBg_grad[i];
+        network->Bo[i] -= learningRate * dL_dBo_grad[i];
+    }
+
+    for (int i = 0; i < (network->inputSize + network->hiddenSize); i++) {
+        free(dL_dWf_grad[i]);
+        free(dL_dWi_grad[i]);
+        free(dL_dWg_grad[i]);
+        free(dL_dWo_grad[i]);
+    }
+    free(dL_dWf_grad);
+    free(dL_dWi_grad);
+    free(dL_dWg_grad);
+    free(dL_dWo_grad);
+
+    free(dL_dBf_grad);
+    free(dL_dBi_grad);
+    free(dL_dBg_grad);
+    free(dL_dBo_grad);
+
+    free(cellPrev);
+    free(combinedState);
+    free(fArray);
+    free(iArray);
+    free(gArray);
+    free(oArray);
+
+    return network->hiddenState;
 }
