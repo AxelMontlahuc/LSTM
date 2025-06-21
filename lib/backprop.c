@@ -110,7 +110,7 @@ double** di_dWi(LSTM* network, double* iArray, double* newHiddenState) {
     return grad;
 }
 
-double** dg_dWg(LSTM* network, double* gArray, double* newHiddenState) {
+double** dg_dWg(LSTM* network, double* gArray, double* z) {
     double** grad = malloc((network->inputSize + network->hiddenSize) * sizeof(double*));
     assert(grad != NULL);
 
@@ -119,7 +119,7 @@ double** dg_dWg(LSTM* network, double* gArray, double* newHiddenState) {
         assert(grad[i] != NULL);
 
         for (int j = 0; j < network->hiddenSize; j++) {
-            grad[i][j] = (1 - gArray[j] * gArray[j]) * newHiddenState[i];
+            grad[i][j] = (1 - gArray[j] * gArray[j]) * z[i];
         }
     }
 
@@ -140,4 +140,118 @@ double** do_dWo(LSTM* network, double* oArray, double* newHiddenState) {
     }
 
     return grad;
+}
+
+double** dL_dWf(LSTM* network, double prediction, double target, double* z, double* oArray, double* fArray) {
+    double* dL_dh_grad = dL_dh(prediction, target, network->hiddenSize);
+    double* dh_dc_grad = dh_dc(oArray, network->cellState, network->hiddenSize);
+    double* dc_df_grad = dc_df(network->cellState, network->hiddenSize);
+    double** df_dWf_grad = df_dWf(network, fArray, z);
+
+    double** dL_dWf = malloc((network->inputSize + network->hiddenSize) * sizeof(double*));
+    assert(dL_dWf != NULL);
+
+    for (int i = 0; i < (network->inputSize + network->hiddenSize); i++) {
+        dL_dWf[i] = malloc(network->hiddenSize * sizeof(double));
+        assert(dL_dWf[i] != NULL);
+
+        for (int j = 0; j < network->hiddenSize; j++) {
+            dL_dWf[i][j] = dL_dh_grad[j] * dh_dc_grad[j] * dc_df_grad[j] * df_dWf_grad[i][j];
+        }
+    }
+    
+    for (int i = 0; i < (network->inputSize + network->hiddenSize); i++) {
+        free(df_dWf_grad[i]);
+    }
+    free(dL_dh_grad);
+    free(dh_dc_grad);
+    free(dc_df_grad);
+    free(df_dWf_grad);
+
+    return dL_dWf;
+}
+
+double** dL_dWi(LSTM* network, double prediction, double target, double* z, double* oArray,double* gArray, double* iArray) {
+    double* dL_dh_grad = dL_dh(prediction, target, network->hiddenSize);
+    double* dh_dc_grad = dh_dc(oArray, network->cellState, network->hiddenSize);
+    double* dc_di_grad = dc_di(gArray, network->hiddenSize);
+    double** di_dWi_grad = di_dWi(network, iArray, z);
+
+    double** dL_dWi = malloc((network->inputSize + network->hiddenSize) * sizeof(double*));
+    assert(dL_dWi != NULL);
+
+    for (int i = 0; i < (network->inputSize + network->hiddenSize); i++) {
+        dL_dWi[i] = malloc(network->hiddenSize * sizeof(double));
+        assert(dL_dWi[i] != NULL);
+
+        for (int j = 0; j < network->hiddenSize; j++) {
+            dL_dWi[i][j] = dL_dh_grad[j] * dh_dc_grad[j] * dc_di_grad[j] * di_dWi_grad[i][j];
+        }
+    }
+    
+    for (int i = 0; i < (network->inputSize + network->hiddenSize); i++) {
+        free(di_dWi_grad[i]);
+    }
+    free(dL_dh_grad);
+    free(dh_dc_grad);
+    free(dc_di_grad);
+    free(di_dWi_grad);
+
+    return dL_dWi;
+}
+
+double** dL_dWg(LSTM* network, double prediction, double target, double* z, double* iArray, double* oArray, double* gArray) {
+    double* dL_dh_grad = dL_dh(prediction, target, network->hiddenSize);
+    double* dh_dc_grad = dh_dc(oArray, network->cellState, network->hiddenSize);
+    double* dc_dg_grad = dc_dg(iArray, network->hiddenSize);
+    double** dg_dWg_grad = dg_dWg(network, gArray, z);
+
+    double** dL_dWg = malloc((network->inputSize + network->hiddenSize) * sizeof(double*));
+    assert(dL_dWg != NULL);
+
+    for (int i = 0; i < (network->inputSize + network->hiddenSize); i++) {
+        dL_dWg[i] = malloc(network->hiddenSize * sizeof(double));
+        assert(dL_dWg[i] != NULL);
+
+        for (int j = 0; j < network->hiddenSize; j++) {
+            dL_dWg[i][j] = dL_dh_grad[j] * dh_dc_grad[j] * dc_dg_grad[j] * dg_dWg_grad[i][j];
+        }
+    }
+    
+    for (int i = 0; i < (network->inputSize + network->hiddenSize); i++) {
+        free(dg_dWg_grad[i]);
+    }
+    free(dL_dh_grad);
+    free(dh_dc_grad);
+    free(dc_dg_grad);
+    free(dg_dWg_grad);
+
+    return dL_dWg;
+}
+
+double** dL_dWo(LSTM* network, double prediction, double target, double* z, double* oArray) {
+    double* dL_dh_grad = dL_dh(prediction, target, network->hiddenSize);
+    double* dc_do_grad = dh_do(network->cellState, network->hiddenSize);
+    double** do_dWo_grad = do_dWo(network, oArray, z);
+
+    double** dL_dWo = malloc((network->inputSize + network->hiddenSize) * sizeof(double*));
+    assert(dL_dWo != NULL);
+
+    for (int i = 0; i < (network->inputSize + network->hiddenSize); i++) {
+        dL_dWo[i] = malloc(network->hiddenSize * sizeof(double));
+        assert(dL_dWo[i] != NULL);
+
+        for (int j = 0; j < network->hiddenSize; j++) {
+            dL_dWo[i][j] = dL_dh_grad[j] * dc_do_grad[j] * do_dWo_grad[i][j];
+        }
+    }
+    
+    for (int i = 0; i < (network->inputSize + network->hiddenSize); i++) {
+        free(do_dWo_grad[i]);
+    }
+    free(dL_dh_grad);
+    free(dc_do_grad);
+    free(do_dWo_grad);
+
+    return dL_dWo;
 }
