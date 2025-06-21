@@ -9,5 +9,5 @@ Having a working implementation will therefore help.
 # Usage
 To compile the code, run:
 ```bash
-gcc -o lstm main.c -lm
+gcc -Wall -Wextra -g main.c lib/data.c lib/model.c lib/forward.c lib/backprop.c -o main -lm
 ```

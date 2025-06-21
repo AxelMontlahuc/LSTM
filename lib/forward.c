@@ -72,27 +72,27 @@ double* outputGate(LSTM* network, double* state) {
 }
 
 double* forward(LSTM* network, WeatherData* data, int idx) {
-    double* newHiddenState = malloc((network->hiddenSize + network->inputSize) * sizeof(double));
-    assert(newHiddenState != NULL);
+    double* combinedState = malloc((network->hiddenSize + network->inputSize) * sizeof(double));
+    assert(combinedState != NULL);
 
-    newHiddenState[0] = data->date[idx];
-    newHiddenState[1] = data->temp[idx];
-    newHiddenState[2] = data->humidity[idx];
-    newHiddenState[3] = data->windSpeed[idx];
-    newHiddenState[4] = data->pressure[idx];
-    for (int i = 0; i < network->hiddenSize; i++) newHiddenState[i + network->inputSize] = network->hiddenState[i];
+    combinedState[0] = data->date[idx];
+    combinedState[1] = data->temp[idx];
+    combinedState[2] = data->humidity[idx];
+    combinedState[3] = data->windSpeed[idx];
+    combinedState[4] = data->pressure[idx];
+    for (int i = 0; i < network->hiddenSize; i++) combinedState[i + network->inputSize] = network->hiddenState[i];
 
-    double* fArray = forgetGate(network, newHiddenState);
-    double* iArray = inputGate(network, newHiddenState);
-    double* cArray = cellGate(network, newHiddenState);
-    double* oArray = outputGate(network, newHiddenState);
+    double* fArray = forgetGate(network, combinedState);
+    double* iArray = inputGate(network, combinedState);
+    double* cArray = cellGate(network, combinedState);
+    double* oArray = outputGate(network, combinedState);
 
     for (int i=0; i<network->hiddenSize; i++) {
         network->cellState[i] = fArray[i] * network->cellState[i] + iArray[i] * cArray[i];
         network->hiddenState[i] = oArray[i] * tanh(network->cellState[i]);
     }
 
-    free(newHiddenState);
+    free(combinedState);
     free(fArray);
     free(iArray);
     free(cArray);

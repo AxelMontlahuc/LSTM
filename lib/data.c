@@ -19,7 +19,7 @@ WeatherData* initWeatherData(char* filename) {
     assert(data != NULL);
 
     data->size = size;
-    data->date = malloc(size * sizeof(int));
+    data->date = malloc(size * sizeof(double));
     data->temp = malloc(size * sizeof(double));
     data->humidity = malloc(size * sizeof(double));
     data->windSpeed = malloc(size * sizeof(double));
