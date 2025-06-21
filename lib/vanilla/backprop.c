@@ -97,3 +97,154 @@ double* dL_dBo(double* output, double* target, int outputSize) {
 
     return grad;
 }
+
+double* do_dh(double* do_dhnext, double** Wh, double* h, int hiddenSize) {
+    double* grad = calloc(hiddenSize, sizeof(double));
+    assert(grad != NULL);
+
+    for (int i = 0; i < hiddenSize; i++) {
+        for (int j = 0; j < hiddenSize; j++) {
+            grad[i] += do_dhnext[j] * Wh[j][i];
+        }
+        grad[i] *= (1 - h[i] * h[i]);
+    }
+
+    return grad;
+}
+
+double** dh_dWi(double* x, double* h, int hiddenSize, int inputSize) {
+    double** grad = malloc(hiddenSize * sizeof(double*));
+    assert(grad != NULL);
+
+    for (int i = 0; i < hiddenSize; i++) {
+        grad[i] = malloc(inputSize * sizeof(double));
+        assert(grad[i] != NULL);
+
+        for (int j = 0; j < inputSize; j++) {
+            grad[i][j] = (1 - h[i] * h[i]) * x[j];
+        }
+    }
+
+    return grad;
+}
+
+double** dh_dWh(double* h, double* hprev, int hiddenSize) {
+    double** grad = malloc(hiddenSize * sizeof(double*));
+    assert(grad != NULL);
+
+    for (int i = 0; i < hiddenSize; i++) {
+        grad[i] = malloc(hiddenSize * sizeof(double));
+        assert(grad[i] != NULL);
+
+        for (int j = 0; j < hiddenSize; j++) {
+            grad[i][j] = (1 - h[i] * h[i]) * hprev[j];
+        }
+    }
+
+    return grad;
+}
+
+double* dh_dBh(double* h, int hiddenSize) {
+    double* grad = malloc(hiddenSize * sizeof(double));
+    assert(grad != NULL);
+
+    for (int i = 0; i < hiddenSize; i++) {
+        grad[i] = (1 - h[i] * h[i]);
+    }
+
+    return grad;
+}
+
+double* dh_dBh(double* h, int hiddenSize) {
+    double* grad = malloc(hiddenSize * sizeof(double));
+    assert(grad != NULL);
+
+    for (int i = 0; i < hiddenSize; i++) {
+        grad[i] = (1 - h[i] * h[i]);
+    }
+
+    return grad;
+}
+
+double** dL_dWi(double* output, double* target, double* h, double* x, double* do_dh_prev, double** Wh, int outputSize, int hiddenSize, int inputSize) {
+    double** grad = malloc(hiddenSize * sizeof(double*));
+    assert(grad != NULL);
+
+    double* dL_do_grad = dL_do(output, target, outputSize);
+    double* do_dh_grad = do_dh(do_dh_prev, Wh, h, hiddenSize);
+    double** dh_dWi_grad = dh_dWi(x, h, hiddenSize, inputSize);
+
+    for (int i = 0; i < hiddenSize; i++) {
+        grad[i] = calloc(inputSize, sizeof(double));
+        assert(grad[i] != NULL);
+
+        for (int j = 0; j < inputSize; j++) {
+            for (int k = 0; k < outputSize; k++) {
+                grad[i][j] += dL_do_grad[k] * do_dh_grad[i];
+            }
+
+            for (int k = 0; k < hiddenSize; k++) {
+                grad[i][j] += do_dh_grad[i] * dh_dWi_grad[i][j];
+            }
+        }
+    }
+
+    for (int i = 0; i < hiddenSize; i++) {
+        free(dh_dWi_grad[i]);
+    }
+    free(dL_do_grad);
+    free(do_dh_grad);
+    free(dh_dWi_grad);
+
+    return grad;
+}
+
+double** dL_dWh(double* output, double* target, double* h, double* hprev, double* do_dh_prev, double** Wh, int outputSize, int hiddenSize) {
+    double** grad = malloc(hiddenSize * sizeof(double*));
+    assert(grad != NULL);
+
+    double* dL_do_grad = dL_do(output, target, outputSize);
+    double* do_dh_grad = do_dh(do_dh_prev, Wh, h, hiddenSize);
+    double** dh_dWh_grad = dh_dWh(h, hprev, hiddenSize);
+
+    for (int i = 0; i < hiddenSize; i++) {
+        grad[i] = calloc(hiddenSize, sizeof(double));
+        assert(grad[i] != NULL);
+
+        for (int j = 0; j < hiddenSize; j++) {
+            for (int k = 0; k < outputSize; k++) {
+                grad[i][j] += dL_do_grad[k] * do_dh_grad[i] * dh_dWh_grad[i][j];
+            }
+        }
+    }
+
+    for (int i = 0; i < hiddenSize; i++) {
+        free(dh_dWh_grad[i]);
+    }
+    free(dL_do_grad);
+    free(do_dh_grad);
+    free(dh_dWh_grad);
+
+    return grad;
+}
+
+double* dL_dBh(double* output, double* target, double* h, double* do_dh_prev, double* Wh, int outputSize, int hiddenSize) {
+    double* grad = calloc(hiddenSize, sizeof(double));
+    assert(grad != NULL);
+
+    double* dL_do_grad = dL_do(output, target, outputSize);
+    double* do_dh_grad = do_dh(do_dh_prev, Wh, h, hiddenSize);
+    double* dh_dBh_grad = dh_dBh(h, hiddenSize);
+
+    for (int i = 0; i < hiddenSize; i++) {
+        for (int j = 0; j < outputSize; j++) {
+            grad[i] += dL_do_grad[j] * do_dh_grad[i] * dh_dBh_grad[i];
+        }
+    }
+
+    free(dL_do_grad);
+    free(do_dh_grad);
+    free(dh_dBh_grad);
+
+    return grad;
+}
