@@ -248,3 +248,94 @@ double* dL_dBh(double* output, double* target, double* h, double* do_dh_prev, do
 
     return grad;
 }
+
+double* bakcpropagation(RNN* model, WeatherData* data, int idx, double learningRate) {
+    double* h = calloc(model->hiddenSize, sizeof(double));
+    double* nh = calloc(model->hiddenSize, sizeof(double));
+    assert(h != NULL && nh != NULL);
+
+    double* x = malloc(model->inputSize * sizeof(double));
+    assert(x != NULL);
+
+    x[0] = data->date[idx];
+    x[1] = data->temp[idx];
+    x[2] = data->humidity[idx];
+    x[3] = data->windSpeed[idx];
+    x[4] = data->pressure[idx];
+
+    for (int i=0; i<model->hiddenSize; i++) {
+        for (int j=0; j<model->inputSize; j++) {
+            nh[i] += model->Wi[i][j] * x[j];
+        }
+
+        for (int j=0; j<model->hiddenSize; j++) {
+            nh[i] += model->Wh[i][j] * h[j];
+        }
+
+        nh[i] += model->Bh[i];
+        nh[i] = tanh(nh[i]);
+
+        for (int j=0; j<model->hiddenSize; j++) {
+            h[j] = nh[j];
+        }
+    }
+
+    double* output = malloc(model->outputSize * sizeof(double));
+    assert(output != NULL);
+
+    for (int i=0; i<model->outputSize; i++) {
+        output[i] = model->Bo[i];
+        for (int j=0; j<model->hiddenSize; j++) {
+            output[i] += model->Wo[i][j] * h[j];
+        }
+    }
+
+    double* target = malloc(model->outputSize * sizeof(double));
+    assert(target != NULL);
+    target[0] = data->temp[idx + 1];
+
+    double** dL_dWo_grad = dL_dWo(output, target, h, model->outputSize, model->hiddenSize);
+    double* dL_dBo_grad = dL_dBo(output, target, model->outputSize);
+    double* do_dh_prev = calloc(model->hiddenSize, sizeof(double));
+    double** dL_dWh_grad = dL_dWh(output, target, h, h, do_dh_prev, model->Wh, model->outputSize, model->hiddenSize);
+    double* dL_dBh_grad = dL_dBh(output, target, h, h, do_dh_prev, model->outputSize, model->hiddenSize);
+    double** dL_dWi_grad = dL_dWi(output, target, h, x, do_dh_prev, model->Wh, model->outputSize, model->hiddenSize, model->inputSize);
+
+    for (int i = 0; i < model->outputSize; i++) {
+        for (int j = 0; j < model->hiddenSize; j++) {
+            model->Wo[i][j] -= learningRate * dL_dWo_grad[i][j];
+        }
+        model->Bo[i] -= learningRate * dL_dBo_grad[i];
+    }
+
+    for (int i = 0; i < model->hiddenSize; i++) {
+        for (int j = 0; j < model->inputSize; j++) {
+            model->Wi[i][j] -= learningRate * dL_dWi_grad[i][j];
+        }
+
+        for (int j = 0; j < model->hiddenSize; j++) {
+            model->Wh[i][j] -= learningRate * dL_dWh_grad[i][j];
+        }
+        model->Bh[i] -= learningRate * dL_dBh_grad[i];
+    }
+
+    for (int i = 0; i < model->outputSize; i++) {
+        free(dL_dWo_grad[i]);
+    }
+    for (int i = 0; i < model->hiddenSize; i++) {
+        free(dL_dWh_grad[i]);
+        free(dL_dWi_grad[i]);
+    }
+    free(dL_dWo_grad);
+    free(dL_dBo_grad);
+    free(do_dh_prev);
+    free(dL_dWh_grad);
+    free(dL_dBh_grad);
+    free(dL_dWi_grad);
+
+    free(x);
+    free(h);
+    free(nh);
+
+    return output;
+}
