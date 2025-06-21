@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
+#include <math.h>
 
 #include "model.h"
 
@@ -29,14 +30,18 @@ GRU* initGRU(int inputSize, int hiddenSize, int outputSize) {
         model->Wr[i] = malloc((inputSize + hiddenSize) * sizeof(double));
         model->Wu[i] = malloc((inputSize + hiddenSize) * sizeof(double));
         model->Wc[i] = malloc((inputSize + hiddenSize) * sizeof(double));
-        model->Wo[i] = malloc(hiddenSize * sizeof(double));
-        assert(model->Wr[i] != NULL && model->Wu[i] != NULL && model->Wc[i] != NULL && model->Wo[i] != NULL);
+        assert(model->Wr[i] != NULL && model->Wu[i] != NULL && model->Wc[i] != NULL);
 
-        for (int j = 0; j < inputSize; j++) {
-            model->Wr[i][j] = heInit(inputSize);
-            model->Wu[i][j] = heInit(inputSize);
-            model->Wc[i][j] = heInit(inputSize);
+        for (int j = 0; j < (inputSize + hiddenSize); j++) {
+            model->Wr[i][j] = heInit(inputSize + hiddenSize);
+            model->Wu[i][j] = heInit(inputSize + hiddenSize);
+            model->Wc[i][j] = heInit(inputSize + hiddenSize);
         }
+    }
+
+    for (int i = 0; i < outputSize; i++) {
+        model->Wo[i] = malloc(hiddenSize * sizeof(double));
+        assert(model->Wo[i] != NULL);
 
         for (int j = 0; j < hiddenSize; j++) {
             model->Wo[i][j] = heInit(hiddenSize);

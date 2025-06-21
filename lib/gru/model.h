@@ -19,4 +19,7 @@ typedef struct {
     double* Bo;
 } GRU;
 
+GRU* initGRU(int inputSize, int hiddenSize, int outputSize);
+void freeGRU(GRU* model);
+
 #endif

@@ -16,6 +16,11 @@ To compile the LSTM run:
 gcc -Wall -Wextra -g lstm.c lib/data.c lib/lstm/model.c lib/lstm/forward.c lib/lstm/backprop.c -o lstm -lm
 ```
 
+To compile the GRU run:
+```bash
+gcc -Wall -Wextra -g gru.c lib/data.c lib/gru/model.c -o gru -lm
+```
+
 # Results
 In order to test the models, we run them on the New Dehli weather data for 500 epochs with a learning rate of 0.001 and a hidden size of 20. 
 The accuracy represents the percentage of predictions within 2 degrees of the actual temperature.
