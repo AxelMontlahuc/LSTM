@@ -4,7 +4,7 @@
 #include <math.h>
 
 #include "backprop.h"
-#include "data.h"
+#include "../data.h"
 #include "model.h"
 #include "forward.h"
 

@@ -4,7 +4,7 @@
 #include <math.h>
 
 #include "forward.h"
-#include "data.h"
+#include "../data.h"
 #include "model.h"
 
 double sigmoid(double x) {

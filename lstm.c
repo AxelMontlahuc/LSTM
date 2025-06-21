@@ -4,7 +4,7 @@
 #include <math.h>
 #include <time.h>
 
-#include "lib/lstm/data.h"
+#include "lib/data.h"
 #include "lib/lstm/model.h"
 #include "lib/lstm/forward.h"
 #include "lib/lstm/backprop.h"

@@ -1,7 +1,7 @@
 #ifndef BACKPROP_H
 #define BACKPROP_H
 
-#include "data.h"
+#include "../data.h"
 #include "model.h"
 
 double mse(double prediction, double target);

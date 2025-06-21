@@ -1,7 +1,7 @@
 #ifndef FORWARD_H
 #define FORWARD_H
 
-#include "data.h"
+#include "../data.h"
 #include "model.h"
 
 double* forgetGate(LSTM* network, double* state);
