@@ -402,8 +402,8 @@ double* backpropagation(LSTM* network, WeatherData* data, int idx, double learni
         network->hiddenState[i] = oArray[i] * tanh(network->cellState[i]);
     }
 
-    double prediction = network->hiddenState[1];
-    double target = data->temp[idx + 1];
+    double prediction = network->hiddenState[1] * 40.0;
+    double target = data->temp[idx + 1] * 40.0;
 
     double** dL_dWf_grad = dL_dWf(network, prediction, target, combinedState, oArray, fArray);
     double** dL_dWi_grad = dL_dWi(network, prediction, target, combinedState, oArray, gArray, iArray);
