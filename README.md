@@ -6,14 +6,29 @@ The models are trained on the weather data of the city of New Dehli, India and p
 The motivation behind this project is to deeply understand how LSTMs work as I believe I will be using them in a future project but also to compare them to other models. 
 
 # Usage
+To compile the Vanilla RNN run:
+```bash
+gcc -Wall -Wextra -g vanilla.c lib/data.c lib/vanilla/model.c lib/vanilla/forward.c lib/vanilla/backprop.c -o vanilla -lm
+```
+
 To compile the LSTM run:
 ```bash
-gcc -Wall -Wextra -g lstm.c lib/lstm/data.c lib/lstm/model.c lib/lstm/forward.c lib/lstm/backprop.c -o lstm -lm
+gcc -Wall -Wextra -g lstm.c lib/data.c lib/lstm/model.c lib/lstm/forward.c lib/lstm/backprop.c -o lstm -lm
 ```
 
 # Results
+In order to test the models, we run them on the New Dehli weather data for 500 epochs with a learning rate of 0.001 and a hidden size of 20. 
+The accuracy represents the percentage of predictions within 2 degrees of the actual temperature.
+## Vanilla
+```bash
+[Epoch 500] Loss: 4.173683
+[Epoch 500] Accuracy: 67.031464%
+
+[Test] Average Loss: 7.815743
+[Test] Average Accuracy: 61.739130%
+```
+
 ## LSTM
-The model is trained on 500 epochs with a learning rate of 0.001 and achieves the following results:
 ```bash
 [Epoch 500] Average Loss: 2.770795
 [Epoch 500] Average Accuracy: 80.095759
@@ -21,4 +36,3 @@ The model is trained on 500 epochs with a learning rate of 0.001 and achieves th
 [Testing] Average Loss: 4.500015
 [Testing] Average Accuracy: 75.438596%
 ```
-The model is able to predict the temperature within a range of 2 degrees Celsius 75.4% of the time. The average difference between the predicted and actual temperature is 2.1 degrees Celsius.
