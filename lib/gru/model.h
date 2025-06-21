@@ -8,9 +8,15 @@ typedef struct {
 
     double* h;
 
-    double** Wr;
-    double** Wu;
-    double** Wc;
+    double** Wrx;
+    double** Wrh;
+
+    double** Wux;
+    double** Wuh;
+
+    double** Wcx;
+    double** Wch;
+    
     double** Wo;
 
     double* Br;

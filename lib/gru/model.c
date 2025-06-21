@@ -20,22 +20,44 @@ GRU* initGRU(int inputSize, int hiddenSize, int outputSize) {
     model->h = calloc(hiddenSize, sizeof(double));
     assert(model->h != NULL);
 
-    model->Wr = malloc(hiddenSize * sizeof(double*));
-    model->Wu = malloc(hiddenSize * sizeof(double*));
-    model->Wc = malloc(hiddenSize * sizeof(double*));
+    model->Wrx = malloc(hiddenSize * sizeof(double*));
+    model->Wrh = malloc(hiddenSize * sizeof(double*));
+
+    model->Wux = malloc(hiddenSize * sizeof(double*));
+    model->Wuh = malloc(hiddenSize * sizeof(double*));
+
+    model->Wcx = malloc(hiddenSize * sizeof(double*));
+    model->Wch = malloc(hiddenSize * sizeof(double*));
+
     model->Wo = malloc(outputSize * sizeof(double*));
-    assert(model->Wr != NULL && model->Wu != NULL && model->Wc != NULL && model->Wo != NULL);
+    assert(model->Wrx != NULL && model->Wrh != NULL &&
+           model->Wux != NULL && model->Wuh != NULL &&
+           model->Wcx != NULL && model->Wch != NULL &&
+           model->Wo != NULL);
 
     for (int i = 0; i < hiddenSize; i++) {
-        model->Wr[i] = malloc((inputSize + hiddenSize) * sizeof(double));
-        model->Wu[i] = malloc((inputSize + hiddenSize) * sizeof(double));
-        model->Wc[i] = malloc((inputSize + hiddenSize) * sizeof(double));
-        assert(model->Wr[i] != NULL && model->Wu[i] != NULL && model->Wc[i] != NULL);
+        model->Wrx[i] = malloc(inputSize * sizeof(double));
+        model->Wrh[i] = malloc(hiddenSize * sizeof(double));
 
-        for (int j = 0; j < (inputSize + hiddenSize); j++) {
-            model->Wr[i][j] = heInit(inputSize + hiddenSize);
-            model->Wu[i][j] = heInit(inputSize + hiddenSize);
-            model->Wc[i][j] = heInit(inputSize + hiddenSize);
+        model->Wux[i] = malloc(inputSize * sizeof(double));
+        model->Wuh[i] = malloc(hiddenSize * sizeof(double));
+
+        model->Wcx[i] = malloc(inputSize * sizeof(double));
+        model->Wch[i] = malloc(hiddenSize * sizeof(double));
+        assert(model->Wrx[i] != NULL && model->Wrh[i] != NULL &&
+               model->Wux[i] != NULL && model->Wuh[i] != NULL &&
+               model->Wcx[i] != NULL && model->Wch[i] != NULL);
+        
+        for (int j = 0; j < inputSize; j++) {
+            model->Wrx[i][j] = heInit(inputSize);
+            model->Wux[i][j] = heInit(inputSize);
+            model->Wcx[i][j] = heInit(inputSize);
+        }
+
+        for (int j = 0; j < hiddenSize; j++) {
+            model->Wrh[i][j] = heInit(hiddenSize);
+            model->Wuh[i][j] = heInit(hiddenSize);
+            model->Wch[i][j] = heInit(hiddenSize);
         }
     }
 
@@ -58,10 +80,15 @@ GRU* initGRU(int inputSize, int hiddenSize, int outputSize) {
 }
 
 void freeGRU(GRU* model) {
-    for (int i= 0; i < model->hiddenSize; i++) {
-        free(model->Wr[i]);
-        free(model->Wu[i]);
-        free(model->Wc[i]);
+    for (int i = 0; i < model->hiddenSize; i++) {
+        free(model->Wrx[i]);
+        free(model->Wrh[i]);
+
+        free(model->Wux[i]);
+        free(model->Wuh[i]);
+
+        free(model->Wcx[i]);
+        free(model->Wch[i]);
     }
 
     for (int i = 0; i < model->outputSize; i++) {
@@ -70,9 +97,12 @@ void freeGRU(GRU* model) {
 
     free(model->h);
 
-    free(model->Wr);
-    free(model->Wu);
-    free(model->Wc);
+    free(model->Wrx);
+    free(model->Wrh);
+    free(model->Wux);
+    free(model->Wuh);
+    free(model->Wcx);
+    free(model->Wch);
     free(model->Wo);
 
     free(model->Br);
