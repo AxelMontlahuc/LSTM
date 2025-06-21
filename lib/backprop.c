@@ -45,12 +45,12 @@ double* dh_do(double* cellState, int size) {
     return grad;
 }
 
-double* dc_df(double* oldCellState, int size) {
+double* dc_df(double* cellPrev, int size) {
     double* grad = malloc(size * sizeof(double));
     assert(grad != NULL);
 
     for (int i = 0; i < size; i++) {
-        grad[i] = oldCellState[i];
+        grad[i] = cellPrev[i];
     }
 
     return grad;
@@ -254,4 +254,122 @@ double** dL_dWo(LSTM* network, double prediction, double target, double* z, doub
     free(do_dWo_grad);
 
     return dL_dWo;
+}
+
+double* dc_dBf(double* cellPrev, double* fArray, int hiddenSize) {
+    double* grad = malloc(hiddenSize * sizeof(double));
+    assert(grad != NULL);
+
+    for (int i = 0; i < hiddenSize; i++) {
+        grad[i] = cellPrev[i] * fArray[i] * (1 - fArray[i]);
+    }
+
+    return grad;
+}
+
+double* dc_dBi(double* gArray, double* iArray, int hiddenSize) {
+    double* grad = malloc(hiddenSize * sizeof(double));
+    assert(grad != NULL);
+
+    for (int i = 0; i < hiddenSize; i++) {
+        grad[i] = gArray[i] * iArray[i] * (1 - iArray[i]);
+    }
+
+    return grad;
+}
+
+double* dc_dBg(double* iArray, double* gArray, int hiddenSize) {
+    double* grad = malloc(hiddenSize * sizeof(double));
+    assert(grad != NULL);
+
+    for (int i = 0; i < hiddenSize; i++) {
+        grad[i] = iArray[i] * (1 - gArray[i] * gArray[i]);
+    }
+
+    return grad;
+}
+
+double* dh_dBo(double* oArray, double* cellState, int hiddenSize) {
+    double* grad = malloc(hiddenSize * sizeof(double));
+    assert(grad != NULL);
+
+    for (int i = 0; i < hiddenSize; i++) {
+        grad[i] = oArray[i] * (1 - oArray[i]) * tanh(cellState[i]);
+    }
+
+    return grad;
+}
+
+double* dL_dBf(double* cellPrev, double* cellState, double* fArray, double* oArray, double prediction, double target, int hiddenSize) {
+    double* dL_dh_grad = dL_dh(prediction, target, hiddenSize);
+    double* dh_dc_grad = dh_dc(oArray, cellState, hiddenSize);
+    double* dc_dBf_grad = dc_dBf(cellPrev, fArray, hiddenSize);
+
+    double* grad = malloc(hiddenSize * sizeof(double));
+    assert(grad != NULL);
+
+    for (int i = 0; i < hiddenSize; i++) {
+        grad[i] = dL_dh_grad[i] * dh_dc_grad[i] * dc_dBf_grad[i];
+    }
+
+    free(dL_dh_grad);
+    free(dh_dc_grad);
+    free(dc_dBf_grad);
+
+    return grad;
+}
+
+double* dL_dBi(double* cellState, double* iArray, double* gArray, double* oArray, double prediction, double target, int hiddenSize) {
+    double* dL_dh_grad = dL_dh(prediction, target, hiddenSize);
+    double* dh_dc_grad = dh_dc(oArray, cellState, hiddenSize);
+    double* dc_dBi_grad = dc_dBi(gArray, iArray, hiddenSize);
+
+    double* grad = malloc(hiddenSize * sizeof(double));
+    assert(grad != NULL);
+
+    for (int i = 0; i < hiddenSize; i++) {
+        grad[i] = dL_dh_grad[i] * dh_dc_grad[i] * dc_dBi_grad[i];
+    }
+
+    free(dL_dh_grad);
+    free(dh_dc_grad);
+    free(dc_dBi_grad);
+
+    return grad;
+}
+
+double* dL_dBg(double* cellState, double* iArray, double* gArray, double* oArray, double prediction, double target, int hiddenSize) {
+    double* dL_dh_grad = dL_dh(prediction, target, hiddenSize);
+    double* dh_dc_grad = dh_dc(oArray, cellState, hiddenSize);
+    double* dc_dBg_grad = dc_dBg(iArray, gArray, hiddenSize);
+
+    double* grad = malloc(hiddenSize * sizeof(double));
+    assert(grad != NULL);
+
+    for (int i = 0; i < hiddenSize; i++) {
+        grad[i] = dL_dh_grad[i] * dh_dc_grad[i] * dc_dBg_grad[i];
+    }
+
+    free(dL_dh_grad);
+    free(dh_dc_grad);
+    free(dc_dBg_grad);
+
+    return grad;
+}
+
+double* dL_dBo(double* cellState, double* oArray, double prediction, double target, int hiddenSize) {
+    double* dL_dh_grad = dL_dh(prediction, target, hiddenSize);
+    double* dh_dBo_grad = dh_dBo(oArray, cellState, hiddenSize);
+
+    double* grad = malloc(hiddenSize * sizeof(double));
+    assert(grad != NULL);
+
+    for (int i = 0; i < hiddenSize; i++) {
+        grad[i] = dL_dh_grad[i] * dh_dBo_grad[i];
+    }
+
+    free(dL_dh_grad);
+    free(dh_dBo_grad);
+
+    return grad;
 }
