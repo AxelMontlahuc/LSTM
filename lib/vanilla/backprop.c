@@ -155,17 +155,6 @@ double* dh_dBh(double* h, int hiddenSize) {
     return grad;
 }
 
-double* dh_dBh(double* h, int hiddenSize) {
-    double* grad = malloc(hiddenSize * sizeof(double));
-    assert(grad != NULL);
-
-    for (int i = 0; i < hiddenSize; i++) {
-        grad[i] = (1 - h[i] * h[i]);
-    }
-
-    return grad;
-}
-
 double** dL_dWi(double* output, double* target, double* h, double* x, double* do_dh_prev, double** Wh, int outputSize, int hiddenSize, int inputSize) {
     double** grad = malloc(hiddenSize * sizeof(double*));
     assert(grad != NULL);
@@ -228,7 +217,7 @@ double** dL_dWh(double* output, double* target, double* h, double* hprev, double
     return grad;
 }
 
-double* dL_dBh(double* output, double* target, double* h, double* do_dh_prev, double* Wh, int outputSize, int hiddenSize) {
+double* dL_dBh(double* output, double* target, double* h, double* do_dh_prev, double** Wh, int outputSize, int hiddenSize) {
     double* grad = calloc(hiddenSize, sizeof(double));
     assert(grad != NULL);
 
@@ -249,7 +238,7 @@ double* dL_dBh(double* output, double* target, double* h, double* do_dh_prev, do
     return grad;
 }
 
-double* bakcpropagation(RNN* model, WeatherData* data, int idx, double learningRate) {
+double* backpropagation(RNN* model, WeatherData* data, int idx, double learningRate) {
     double* h = calloc(model->hiddenSize, sizeof(double));
     double* nh = calloc(model->hiddenSize, sizeof(double));
     assert(h != NULL && nh != NULL);
@@ -292,13 +281,13 @@ double* bakcpropagation(RNN* model, WeatherData* data, int idx, double learningR
 
     double* target = malloc(model->outputSize * sizeof(double));
     assert(target != NULL);
-    target[0] = data->temp[idx + 1];
+    target[0] = data->temp[idx + 1] * 40.0;
 
     double** dL_dWo_grad = dL_dWo(output, target, h, model->outputSize, model->hiddenSize);
     double* dL_dBo_grad = dL_dBo(output, target, model->outputSize);
     double* do_dh_prev = calloc(model->hiddenSize, sizeof(double));
     double** dL_dWh_grad = dL_dWh(output, target, h, h, do_dh_prev, model->Wh, model->outputSize, model->hiddenSize);
-    double* dL_dBh_grad = dL_dBh(output, target, h, h, do_dh_prev, model->outputSize, model->hiddenSize);
+    double* dL_dBh_grad = dL_dBh(output, target, h, do_dh_prev, model->Wh, model->outputSize, model->hiddenSize);
     double** dL_dWi_grad = dL_dWi(output, target, h, x, do_dh_prev, model->Wh, model->outputSize, model->hiddenSize, model->inputSize);
 
     for (int i = 0; i < model->outputSize; i++) {
@@ -336,6 +325,9 @@ double* bakcpropagation(RNN* model, WeatherData* data, int idx, double learningR
     free(x);
     free(h);
     free(nh);
+
+    // printf("Output: %f | Target: %f\n", output[0], target[0]);
+    free(target);
 
     return output;
 }
