@@ -8,17 +8,17 @@ The motivation behind this project is to deeply understand how LSTMs work as I b
 # Usage
 To compile the Vanilla RNN run:
 ```bash
-gcc -Wall -Wextra -g vanilla.c lib/data.c lib/vanilla/model.c lib/vanilla/forward.c lib/vanilla/backprop.c -o vanilla -lm
+gcc -g vanilla.c lib/data.c lib/vanilla/model.c lib/vanilla/forward.c lib/vanilla/backprop.c -o vanilla -lm
 ```
 
 To compile the LSTM run:
 ```bash
-gcc -Wall -Wextra -g lstm.c lib/data.c lib/lstm/model.c lib/lstm/forward.c lib/lstm/backprop.c -o lstm -lm
+gcc -g lstm.c lib/data.c lib/lstm/model.c lib/lstm/forward.c lib/lstm/backprop.c -o lstm -lm
 ```
 
 To compile the GRU run:
 ```bash
-gcc -Wall -Wextra -g gru.c lib/data.c lib/gru/model.c -o gru -lm
+gcc -g gru.c lib/data.c lib/gru/model.c lib/gru/forward.c -o gru -lm
 ```
 
 # Results
