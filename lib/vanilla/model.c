@@ -6,7 +6,7 @@
 #include "model.h"
 
 double heInit(int fan_in) {
-    return ((double)rand() / RAND_MAX) * sqrt(2.0 / fan_in);
+    return ((2.0 * (double)rand() / RAND_MAX) - 1.0) * sqrt(2.0 / fan_in);
 }
 
 RNN* initRNN(int inputSize, int hiddenSize, int outputSize) {
