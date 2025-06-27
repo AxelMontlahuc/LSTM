@@ -6,6 +6,15 @@ The models are trained on the weather data of the city of New Dehli, India and p
 The motivation behind this project is to deeply understand how LSTMs work as I believe I will be using them in a future project but also to compare them to other models. 
 
 # Usage
+Make sure to have the `data` directory in the same directory than the executables if you are using them. In that case your folder should look like this:
+```
+├── vanilla.exe
+├── lstm.exe
+├── gru.exe
+└── data
+    ├── train.csv
+    └── test.csv
+```
 To compile the Vanilla RNN run:
 ```bash
 gcc -g vanilla.c lib/data.c lib/vanilla/model.c lib/vanilla/forward.c lib/vanilla/backprop.c -o vanilla -lm
